@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef, useImperativeHandle } from "react";
 import {
   Box,
   TextField,
   Button,
   Typography,
   Paper,
-  Grid,
+  Grid as MuiGrid,
   MenuItem,
   FormControl,
   InputLabel,
   Select,
+  SelectChangeEvent,
   InputAdornment,
   Card,
   CardContent,
@@ -18,6 +19,7 @@ import {
   StepLabel,
   useTheme,
   OutlinedInput,
+  CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
@@ -25,9 +27,19 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import PersonIcon from "@mui/icons-material/Person";
 import PaymentIcon from "@mui/icons-material/Payment";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import SecurityIcon from "@mui/icons-material/Security";
+import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import WarningIcon from "@mui/icons-material/Warning";
 
 interface TransactionFormProps {
   onSubmit: (data: any) => void;
+  loading?: boolean;
+}
+
+export interface TransactionFormRef {
+  resetForm: () => void;
 }
 
 type FormData = {
@@ -43,7 +55,6 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
   maxWidth: 900,
   margin: "auto",
-  marginTop: theme.spacing(4),
   background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
   boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
   borderRadius: theme.shape.borderRadius * 2,
@@ -123,306 +134,513 @@ const SectionHeader = styled(Box)(({ theme }) => ({
   },
 }));
 
-const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit }) => {
-  const theme = useTheme();
-  const [formData, setFormData] = useState<FormData>({
-    amount: "",
-    transaction_type: "in-store",
-    merchant_category: "retail",
-    card_type: "credit",
-    transaction_location: "domestic",
-    customer_age: "",
-  });
+const Grid = MuiGrid as React.ComponentType<any>;
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+const HeroSection = styled(Box)(({ theme }) => ({
+  textAlign: "center",
+  padding: theme.spacing(8, 4),
+  background: "linear-gradient(135deg, #0a1929 0%, #1a365d 100%)",
+  borderRadius: theme.shape.borderRadius * 2,
+  marginBottom: theme.spacing(4),
+  color: "#fff",
+}));
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+const FeatureCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  height: "100%",
+  background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+  borderRadius: theme.shape.borderRadius * 2,
+  transition: "transform 0.3s ease-in-out",
+  "&:hover": {
+    transform: "translateY(-5px)",
+  },
+}));
 
-    // Validate amount
-    if (!formData.amount) {
-      newErrors.amount = "Amount is required";
-    } else if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      newErrors.amount = "Amount must be a positive number";
-    }
+const StatsSection = styled(Box)(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: theme.spacing(3),
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
 
-    // Validate customer age
-    if (!formData.customer_age) {
-      newErrors.customer_age = "Age is required";
-    } else {
-      const age = Number(formData.customer_age);
-      if (isNaN(age)) {
-        newErrors.customer_age = "Age must be a number";
-      } else if (age < 18) {
-        newErrors.customer_age = "Age must be at least 18";
-      } else if (age > 120) {
-        newErrors.customer_age = "Age must be less than 120";
-      }
-    }
+const StatCard = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(2),
+  textAlign: "center",
+  color: "#fff",
+  borderRadius: theme.shape.borderRadius,
+  background: "linear-gradient(135deg, #1976d2 0%, #2196f3 100%)",
+}));
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+const TransactionForm = forwardRef<TransactionFormRef, TransactionFormProps>(
+  ({ onSubmit, loading = false }, ref) => {
+    const theme = useTheme();
+    const [activeStep, setActiveStep] = useState(0);
+    const [formData, setFormData] = useState<FormData>({
+      amount: "",
+      transaction_type: "in-store",
+      merchant_category: "retail",
+      card_type: "credit",
+      transaction_location: "domestic",
+      customer_age: "",
+    });
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name as string]: value,
+    useImperativeHandle(ref, () => ({
+      resetForm: () => {
+        setActiveStep(0);
+        setFormData({
+          amount: "",
+          transaction_type: "in-store",
+          merchant_category: "retail",
+          card_type: "credit",
+          transaction_location: "domestic",
+          customer_age: "",
+        });
+        setErrors({});
+      },
     }));
 
-    // Clear error when user starts typing
-    if (errors[name as string]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name as string];
-        return newErrors;
-      });
-    }
-  };
+    const steps = ["Transaction Details", "Analysis", "Results"];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
+    // Add effect to automatically move to next step when loading completes
+    React.useEffect(() => {
+      if (activeStep === 1 && !loading) {
+        setActiveStep(2);
+      }
+    }, [loading, activeStep]);
 
-  return (
-    <StyledPaper elevation={3}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        align="center"
-        color="primary"
-        sx={{
-          mb: 4,
-          fontWeight: 700,
-          background: "linear-gradient(45deg, #1976d2, #2196f3)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        Credit Card Transaction Analysis
-      </Typography>
+    const handleNext = () => {
+      if (validateForm()) {
+        if (activeStep === 0) {
+          setActiveStep(1);
+          onSubmit(formData);
+        }
+      }
+    };
 
-      <Stepper activeStep={0} alternativeLabel sx={{ mb: 4 }}>
-        <Step>
-          <StepLabel>Transaction Details</StepLabel>
-        </Step>
-        <Step>
-          <StepLabel>Analysis</StepLabel>
-        </Step>
-        <Step>
-          <StepLabel>Results</StepLabel>
-        </Step>
-      </Stepper>
+    const handleBack = () => {
+      setActiveStep((prevStep) => prevStep - 1);
+    };
 
-      <form onSubmit={handleSubmit}>
-        <FormSection>
-          <CardContent>
-            <SectionHeader>
-              <PersonIcon fontSize="large" />
-              <Typography variant="h6" color="primary" fontWeight="600">
-                Customer Information
-              </Typography>
-            </SectionHeader>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <Box
-                  sx={{
-                    width: "13rem",
-                    maxWidth: "1200px",
-                    margin: "0 auto",
-                    mb: 3,
-                  }}
-                >
-                  <FormControl
-                    fullWidth
-                    sx={{
-                      width: "100%",
-                      "& .MuiOutlinedInput-root": {
-                        width: "100%",
-                        minHeight: "56px",
-                      },
-                    }}
-                    error={!!errors.customer_age}
-                  >
-                    <InputLabel>Customer Age</InputLabel>
-                    <OutlinedInput
-                      label="Customer Age"
-                      name="customer_age"
-                      type="number"
-                      value={formData.customer_age}
-                      onChange={handleChange}
-                      inputProps={{ min: "18", max: "120" }}
-                      sx={{
-                        width: "100%",
-                        "& .MuiOutlinedInput-input": {
-                          fontSize: "1.1rem",
-                          padding: "16px 14px",
-                        },
-                      }}
-                    />
-                    {errors.customer_age && (
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (validateForm()) {
+        onSubmit(formData);
+      }
+    };
+
+    const getStepContent = (step: number) => {
+      switch (step) {
+        case 0:
+          return (
+            <FormSection>
+              <CardContent>
+                <Box sx={{ maxWidth: "450px", margin: "0 auto", py: 2 }}>
+                  {/* Form Content */}
+                  <Box sx={{ mb: 5 }}>
+                    <SectionHeader>
+                      <PersonIcon
+                        sx={{ color: "primary.main", fontSize: "1.5rem" }}
+                      />
                       <Typography
-                        variant="caption"
-                        color="error"
-                        sx={{ mt: 1 }}
+                        variant="h6"
+                        sx={{
+                          fontSize: "1.2rem",
+                          fontWeight: 500,
+                          color: "primary.main",
+                        }}
                       >
-                        {errors.customer_age}
+                        Customer Information
                       </Typography>
-                    )}
-                  </FormControl>
+                    </SectionHeader>
+                    <Box
+                      sx={{
+                        mt: 3,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 3,
+                      }}
+                    >
+                      <FormControl>
+                        <InputLabel>Customer Age</InputLabel>
+                        <OutlinedInput
+                          label="Customer Age"
+                          name="customer_age"
+                          type="number"
+                          value={formData.customer_age}
+                          onChange={handleInputChange}
+                          inputProps={{ min: "18", max: "120" }}
+                          fullWidth
+                          sx={{ borderRadius: 2 }}
+                        />
+                        {errors.customer_age && (
+                          <Typography
+                            variant="caption"
+                            color="error"
+                            sx={{ mt: 1 }}
+                          >
+                            {errors.customer_age}
+                          </Typography>
+                        )}
+                      </FormControl>
+                      <FormControl>
+                        <InputLabel>Card Type</InputLabel>
+                        <Select
+                          name="card_type"
+                          value={formData.card_type}
+                          onChange={handleSelectChange}
+                          label="Card Type"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="credit">Credit Card</MenuItem>
+                          <MenuItem value="debit">Debit Card</MenuItem>
+                          <MenuItem value="prepaid">Prepaid Card</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ mb: 5 }}>
+                    <SectionHeader>
+                      <PaymentIcon
+                        sx={{ color: "primary.main", fontSize: "1.5rem" }}
+                      />
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontSize: "1.2rem",
+                          fontWeight: 500,
+                          color: "primary.main",
+                        }}
+                      >
+                        Transaction Details
+                      </Typography>
+                    </SectionHeader>
+                    <Box
+                      sx={{
+                        mt: 3,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 3,
+                      }}
+                    >
+                      <FormControl>
+                        <InputLabel>Transaction Amount</InputLabel>
+                        <OutlinedInput
+                          label="Transaction Amount"
+                          name="amount"
+                          type="number"
+                          value={formData.amount}
+                          onChange={handleInputChange}
+                          error={!!errors.amount}
+                          inputProps={{ min: "0", step: "0.01" }}
+                          startAdornment={
+                            <InputAdornment position="start">$</InputAdornment>
+                          }
+                          fullWidth
+                          sx={{ borderRadius: 2 }}
+                        />
+                        {errors.amount && (
+                          <Typography
+                            variant="caption"
+                            color="error"
+                            sx={{ mt: 1 }}
+                          >
+                            {errors.amount}
+                          </Typography>
+                        )}
+                      </FormControl>
+                      <FormControl>
+                        <InputLabel>Transaction Type</InputLabel>
+                        <Select
+                          name="transaction_type"
+                          value={formData.transaction_type}
+                          onChange={handleSelectChange}
+                          label="Transaction Type"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="in-store">In-Store</MenuItem>
+                          <MenuItem value="online">Online</MenuItem>
+                          <MenuItem value="atm">ATM</MenuItem>
+                          <MenuItem value="international">
+                            International
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ mb: 4 }}>
+                    <SectionHeader>
+                      <ShoppingCartIcon
+                        sx={{ color: "primary.main", fontSize: "1.5rem" }}
+                      />
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontSize: "1.2rem",
+                          fontWeight: 500,
+                          color: "primary.main",
+                        }}
+                      >
+                        Merchant Information
+                      </Typography>
+                    </SectionHeader>
+                    <Box
+                      sx={{
+                        mt: 3,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 3,
+                      }}
+                    >
+                      <FormControl>
+                        <InputLabel>Merchant Category</InputLabel>
+                        <Select
+                          name="merchant_category"
+                          value={formData.merchant_category}
+                          onChange={handleSelectChange}
+                          label="Merchant Category"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="retail">Retail</MenuItem>
+                          <MenuItem value="electronics">Electronics</MenuItem>
+                          <MenuItem value="food">Food & Dining</MenuItem>
+                          <MenuItem value="travel">Travel</MenuItem>
+                          <MenuItem value="entertainment">
+                            Entertainment
+                          </MenuItem>
+                          <MenuItem value="healthcare">Healthcare</MenuItem>
+                          <MenuItem value="education">Education</MenuItem>
+                          <MenuItem value="other">Other</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <FormControl>
+                        <InputLabel>Transaction Location</InputLabel>
+                        <Select
+                          name="transaction_location"
+                          value={formData.transaction_location}
+                          onChange={handleSelectChange}
+                          label="Transaction Location"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="domestic">Domestic</MenuItem>
+                          <MenuItem value="international">
+                            International
+                          </MenuItem>
+                          <MenuItem value="online">Online</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  </Box>
                 </Box>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </FormSection>
+              </CardContent>
+            </FormSection>
+          );
+        case 1:
+          return (
+            <FormSection>
+              <CardContent>
+                <SectionHeader>
+                  <AssessmentIcon fontSize="large" />
+                  <Typography variant="h6" color="primary" fontWeight="600">
+                    Analysis in Progress
+                  </Typography>
+                </SectionHeader>
+                <Box sx={{ textAlign: "center", py: 4 }}>
+                  <CircularProgress size={60} />
+                  <Typography variant="h6" sx={{ mt: 2 }}>
+                    Analyzing transaction patterns...
+                  </Typography>
+                  <Typography color="text.secondary" sx={{ mt: 1 }}>
+                    Our AI is processing your transaction details
+                  </Typography>
+                </Box>
+              </CardContent>
+            </FormSection>
+          );
+        case 2:
+          return (
+            <FormSection>
+              <CardContent>
+                <SectionHeader>
+                  <CheckCircleIcon fontSize="large" />
+                  <Typography variant="h6" color="primary" fontWeight="600">
+                    Review & Submit
+                  </Typography>
+                </SectionHeader>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="body1" gutterBottom>
+                      Please review your transaction details before submitting:
+                    </Typography>
+                    <Box sx={{ mt: 2 }}>
+                      <Typography>
+                        <strong>Customer Age:</strong> {formData.customer_age}
+                      </Typography>
+                      <Typography>
+                        <strong>Amount:</strong> ${formData.amount}
+                      </Typography>
+                      <Typography>
+                        <strong>Transaction Type:</strong>{" "}
+                        {formData.transaction_type}
+                      </Typography>
+                      <Typography>
+                        <strong>Merchant Category:</strong>{" "}
+                        {formData.merchant_category}
+                      </Typography>
+                      <Typography>
+                        <strong>Card Type:</strong> {formData.card_type}
+                      </Typography>
+                      <Typography>
+                        <strong>Location:</strong>{" "}
+                        {formData.transaction_location}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </FormSection>
+          );
+        default:
+          return "Unknown step";
+      }
+    };
 
-        <FormSection>
-          <CardContent>
-            <SectionHeader>
-              <PaymentIcon fontSize="large" />
-              <Typography variant="h6" color="primary" fontWeight="600">
-                Transaction Details
-              </Typography>
-            </SectionHeader>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <StyledTextField
-                  fullWidth
-                  label="Transaction Amount"
-                  name="amount"
-                  type="number"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.amount}
-                  helperText={errors.amount}
-                  inputProps={{ min: "0", step: "0.01" }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">$</InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Transaction Type</InputLabel>
-                  <StyledSelect
-                    name="transaction_type"
-                    value={formData.transaction_type}
-                    onChange={handleChange}
-                    label="Transaction Type"
-                  >
-                    <MenuItem value="in-store">In-Store</MenuItem>
-                    <MenuItem value="online">Online</MenuItem>
-                    <MenuItem value="atm">ATM</MenuItem>
-                    <MenuItem value="international">International</MenuItem>
-                  </StyledSelect>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </FormSection>
+    const validateForm = () => {
+      const newErrors: Record<string, string> = {};
 
-        <FormSection>
-          <CardContent>
-            <SectionHeader>
-              <CreditCardIcon fontSize="large" />
-              <Typography variant="h6" color="primary" fontWeight="600">
-                Card Information
-              </Typography>
-            </SectionHeader>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Card Type</InputLabel>
-                  <StyledSelect
-                    name="card_type"
-                    value={formData.card_type}
-                    onChange={handleChange}
-                    label="Card Type"
-                  >
-                    <MenuItem value="credit">Credit Card</MenuItem>
-                    <MenuItem value="debit">Debit Card</MenuItem>
-                    <MenuItem value="prepaid">Prepaid Card</MenuItem>
-                  </StyledSelect>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </FormSection>
+      // Validate amount
+      if (!formData.amount) {
+        newErrors.amount = "Amount is required";
+      } else if (
+        isNaN(Number(formData.amount)) ||
+        Number(formData.amount) <= 0
+      ) {
+        newErrors.amount = "Amount must be a positive number";
+      }
 
-        <FormSection>
-          <CardContent>
-            <SectionHeader>
-              <ShoppingCartIcon fontSize="large" />
-              <Typography variant="h6" color="primary" fontWeight="600">
-                Merchant Information
-              </Typography>
-            </SectionHeader>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Merchant Category</InputLabel>
-                  <StyledSelect
-                    name="merchant_category"
-                    value={formData.merchant_category}
-                    onChange={handleChange}
-                    label="Merchant Category"
-                  >
-                    <MenuItem value="retail">Retail</MenuItem>
-                    <MenuItem value="electronics">Electronics</MenuItem>
-                    <MenuItem value="food">Food & Dining</MenuItem>
-                    <MenuItem value="travel">Travel</MenuItem>
-                    <MenuItem value="entertainment">Entertainment</MenuItem>
-                    <MenuItem value="healthcare">Healthcare</MenuItem>
-                    <MenuItem value="education">Education</MenuItem>
-                    <MenuItem value="other">Other</MenuItem>
-                  </StyledSelect>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Transaction Location</InputLabel>
-                  <StyledSelect
-                    name="transaction_location"
-                    value={formData.transaction_location}
-                    onChange={handleChange}
-                    label="Transaction Location"
-                  >
-                    <MenuItem value="domestic">Domestic</MenuItem>
-                    <MenuItem value="international">International</MenuItem>
-                    <MenuItem value="online">Online</MenuItem>
-                  </StyledSelect>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </FormSection>
+      // Validate customer age
+      if (!formData.customer_age) {
+        newErrors.customer_age = "Age is required";
+      } else {
+        const age = Number(formData.customer_age);
+        if (isNaN(age)) {
+          newErrors.customer_age = "Age must be a number";
+        } else if (age < 18) {
+          newErrors.customer_age = "Age must be at least 18";
+        } else if (age > 120) {
+          newErrors.customer_age = "Age must be less than 120";
+        }
+      }
 
-        <Box sx={{ mt: 4, textAlign: "center" }}>
-          <StyledButton
-            type="submit"
-            variant="contained"
-            color="primary"
-            size="large"
-            startIcon={<CheckCircleIcon />}
-            sx={{
-              background: "linear-gradient(45deg, #1976d2 30%, #2196f3 90%)",
-            }}
-          >
-            Analyze Transaction
-          </StyledButton>
-        </Box>
-      </form>
-    </StyledPaper>
-  );
-};
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+
+      if (errors[name]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
+    };
+
+    const handleSelectChange = (e: SelectChangeEvent) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    };
+
+    return (
+      <StyledPaper elevation={3}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          align="center"
+          sx={{
+            mb: 4,
+            fontWeight: 600,
+            color: "primary.main",
+          }}
+        >
+          Transaction Analysis
+        </Typography>
+
+        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleNext();
+          }}
+        >
+          {getStepContent(activeStep)}
+
+          <Box sx={{ mt: 4, display: "flex", justifyContent: "space-between" }}>
+            <Button
+              variant="outlined"
+              disabled={activeStep === 0 || loading}
+              onClick={handleBack}
+              sx={{
+                borderRadius: 2,
+                px: 4,
+                py: 1.5,
+                fontSize: "1rem",
+              }}
+            >
+              Back
+            </Button>
+            {activeStep === 0 && (
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                disabled={loading}
+                sx={{
+                  borderRadius: 2,
+                  px: 4,
+                  py: 1.5,
+                  fontSize: "1rem",
+                  background:
+                    "linear-gradient(45deg, #1976d2 30%, #2196f3 90%)",
+                }}
+              >
+                {loading ? (
+                  <>
+                    <CircularProgress
+                      size={20}
+                      sx={{ mr: 1 }}
+                      color="inherit"
+                    />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Analyze Transaction"
+                )}
+              </Button>
+            )}
+          </Box>
+        </form>
+      </StyledPaper>
+    );
+  }
+);
 
 export default TransactionForm;
