@@ -4,6 +4,9 @@ import {
   CssBaseline,
   ThemeProvider,
   createTheme,
+  Box,
+  Typography,
+  Paper,
 } from "@mui/material";
 import TransactionForm from "./components/TransactionForm";
 import Results from "./components/Results";
@@ -19,6 +22,16 @@ const theme = createTheme({
       main: "#dc004e",
     },
   },
+  typography: {
+    h1: {
+      fontSize: "2.5rem",
+      fontWeight: 600,
+    },
+    h2: {
+      fontSize: "2rem",
+      fontWeight: 500,
+    },
+  },
 });
 
 function App() {
@@ -29,14 +42,11 @@ function App() {
   const handleSubmit = async (formData: any) => {
     setLoading(true);
     try {
-      // Convert string values to numbers
-      const data = Object.entries(formData).reduce(
-        (acc, [key, value]) => ({
-          ...acc,
-          [key]: parseFloat(value as string),
-        }),
-        {}
-      );
+      // Only convert amount to number, keep other fields as strings
+      const data = {
+        ...formData,
+        amount: parseFloat(formData.amount),
+      };
 
       const response = await fetch("http://localhost:5001/predict", {
         method: "POST",
@@ -68,14 +78,38 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container>
-        <TransactionForm onSubmit={handleSubmit} />
-        <Results
-          prediction={prediction}
-          loading={loading}
-          probability={probability || undefined}
-        />
-      </Container>
+      <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+        {/* Hero Section */}
+        
+
+        {/* Main Content */}
+        <Container maxWidth="lg">
+          <Paper
+            elevation={3}
+            sx={{
+              p: 4,
+              mb: 4,
+              borderRadius: 2,
+            }}
+          >
+            <TransactionForm onSubmit={handleSubmit} />
+          </Paper>
+          <Paper
+            elevation={3}
+            sx={{
+              p: 4,
+              mb: 4,
+              borderRadius: 2,
+            }}
+          >
+            <Results
+              prediction={prediction}
+              loading={loading}
+              probability={probability || undefined}
+            />
+          </Paper>
+        </Container>
+      </Box>
     </ThemeProvider>
   );
 }

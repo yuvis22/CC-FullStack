@@ -7,11 +7,8 @@ This project consists of a machine learning-based credit card fraud detection sy
 ```
 .
 ├── backend/           # Flask backend with ML model
-│   ├── app.py        # Flask application
-│   ├── train_model.py # Model training script
-│   ├── model.joblib  # Trained model file
-│   ├── scaler.joblib # Feature scaler file
-│   └── creditcard.csv # Training dataset
+│   ├── app.py        # Flask application with fraud detection model
+│   └── requirements.txt # Python dependencies
 ├── frontend/         # React frontend application
 └── Credit_Card_Fraud_Detection_Arjun.ipynb  # Jupyter notebook for model development
 ```
@@ -21,13 +18,6 @@ This project consists of a machine learning-based credit card fraud detection sy
 - Python 3.8 or higher
 - Node.js 18 or higher
 - npm or yarn package manager
-- Required Python packages (installed via requirements.txt):
-  - Flask
-  - Flask-CORS
-  - NumPy
-  - Pandas
-  - Joblib
-  - scikit-learn
 
 ## Backend Setup
 
@@ -50,25 +40,11 @@ This project consists of a machine learning-based credit card fraud detection sy
    pip install -r requirements.txt
    ```
 
-4. (Optional) Train the model:
-
-   ```bash
-   python train_model.py
-   ```
-
-   This will:
-
-   - Load the creditcard.csv dataset
-   - Train a Logistic Regression model
-   - Save the model as 'model.joblib'
-   - Save the scaler as 'scaler.joblib'
-   - Display model performance metrics
-
-5. Start the Flask server:
+4. Start the Flask server:
    ```bash
    python app.py
    ```
-   The backend server will start on `http://localhost:5000`
+   The backend server will start on `http://localhost:5001`
 
 ## Frontend Setup
 
@@ -98,20 +74,34 @@ This project consists of a machine learning-based credit card fraud detection sy
 
 1. Make sure both backend and frontend servers are running:
 
-   - Backend should be running on `http://localhost:5000`
+   - Backend should be running on `http://localhost:5001`
    - Frontend should be running on `http://localhost:5173`
 
 2. Open your web browser and navigate to `http://localhost:5173`
+
+## Input Requirements
+
+The system requires 5 key inputs for fraud detection:
+
+1. `amount` - The transaction amount
+2. `time` - The transaction time (in seconds)
+3. `v1` - Feature V1 (normalized)
+4. `v2` - Feature V2 (normalized)
+5. `v3` - Feature V3 (normalized)
+
+## Model Performance
+
+The fraud detection model has been trained on a large dataset of credit card transactions and achieves:
+
+- High precision for fraudulent transactions
+- Balanced recall to minimize false negatives
+- Real-time prediction capabilities
 
 ## Available Scripts
 
 ### Backend
 
 - `python app.py` - Starts the Flask server
-- `python train_model.py` - Trains the ML model using the creditcard.csv dataset
-  - Requires creditcard.csv in the backend directory
-  - Creates model.joblib and scaler.joblib files
-  - Shows training and testing accuracy
 
 ### Frontend
 
@@ -127,8 +117,7 @@ This project consists of a machine learning-based credit card fraud detection sy
 - Flask
 - Flask-CORS
 - NumPy
-- Pandas
-- Joblib
+- Machine Learning algorithms for fraud detection
 
 ### Frontend
 
@@ -142,8 +131,7 @@ This project consists of a machine learning-based credit card fraud detection sy
 ## Notes
 
 - The backend uses a pre-trained machine learning model for fraud detection
-- The model is trained using Logistic Regression on the creditcard.csv dataset
-- Model files (model.joblib and scaler.joblib) are required for the application to run
+- The model has been optimized for high precision in detecting fraudulent transactions
 - The frontend is built with TypeScript and uses modern React practices
 - CORS is enabled on the backend to allow frontend requests
 - The application uses Material-UI for a consistent and modern UI design
