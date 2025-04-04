@@ -5,317 +5,423 @@ import {
   Button,
   Typography,
   Paper,
-  Grid as MuiGrid,
-  ButtonGroup,
+  Grid,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  InputAdornment,
+  Card,
+  CardContent,
+  Stepper,
+  Step,
+  StepLabel,
+  useTheme,
+  OutlinedInput,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import PersonIcon from "@mui/icons-material/Person";
+import PaymentIcon from "@mui/icons-material/Payment";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 interface TransactionFormProps {
   onSubmit: (data: any) => void;
 }
 
 type FormData = {
-  [key: string]: string;
   amount: string;
-  time: string;
-  v1: string;
-  v2: string;
-  v3: string;
-  v4: string;
-  v5: string;
-  v6: string;
-  v7: string;
-  v8: string;
-  v9: string;
-  v10: string;
-  v11: string;
-  v12: string;
-  v13: string;
-  v14: string;
-  v15: string;
-  v16: string;
-  v17: string;
-  v18: string;
-  v19: string;
-  v20: string;
-  v21: string;
-  v22: string;
-  v23: string;
-  v24: string;
-  v25: string;
-  v26: string;
-  v27: string;
-  v28: string;
+  transaction_type: string;
+  merchant_category: string;
+  card_type: string;
+  transaction_location: string;
+  customer_age: string;
 };
 
-// Sample test cases
-const testCases = {
-  legitimate1: {
-    amount: 149.62,
-    time: 0,
-    v1: -1.359807,
-    v2: -0.072781,
-    v3: 2.536347,
-    v4: 1.378155,
-    v5: -0.338321,
-    v6: 0.462388,
-    v7: 0.239599,
-    v8: 0.098698,
-    v9: 0.363787,
-    v10: 0.090794,
-    v11: -0.018307,
-    v12: 0.277838,
-    v13: -0.110474,
-    v14: 0.066928,
-    v15: 0.128539,
-    v16: -0.189115,
-    v17: 0.133558,
-    v18: -0.021053,
-    v19: 0.403993,
-    v20: 0.251412,
-    v21: -0.018307,
-    v22: 0.277838,
-    v23: -0.110474,
-    v24: 0.066928,
-    v25: 0.128539,
-    v26: -0.189115,
-    v27: 0.133558,
-    v28: -0.021053,
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  maxWidth: 900,
+  margin: "auto",
+  marginTop: theme.spacing(4),
+  background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+  borderRadius: theme.shape.borderRadius * 2,
+  position: "relative",
+  overflow: "hidden",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "4px",
+    background: "linear-gradient(90deg, #1976d2, #2196f3, #64b5f6)",
   },
-  legitimate2: {
-    amount: 2.69,
-    time: 0,
-    v1: 1.191857,
-    v2: 0.266151,
-    v3: 0.16648,
-    v4: 0.448154,
-    v5: 0.060018,
-    v6: -0.082361,
-    v7: -0.078803,
-    v8: 0.085102,
-    v9: -0.255425,
-    v10: -0.166974,
-    v11: -0.225775,
-    v12: -0.638672,
-    v13: 0.101288,
-    v14: -0.339846,
-    v15: 0.16717,
-    v16: 0.125895,
-    v17: -0.008983,
-    v18: 0.014724,
-    v19: -0.225775,
-    v20: -0.638672,
-    v21: 0.101288,
-    v22: -0.339846,
-    v23: 0.16717,
-    v24: 0.125895,
-    v25: -0.008983,
-    v26: 0.014724,
-    v27: -0.008983,
-    v28: 0.014724,
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  "& .MuiOutlinedInput-root": {
+    borderRadius: theme.shape.borderRadius * 1.5,
+    transition: "all 0.3s ease",
+    "&:hover fieldset": {
+      borderColor: theme.palette.primary.main,
+    },
+    "&.Mui-focused fieldset": {
+      borderWidth: "2px",
+    },
   },
-  fraudulent1: {
-    amount: 378.66,
-    time: 1,
-    v1: -1.358354,
-    v2: -1.340163,
-    v3: 1.773209,
-    v4: 0.37978,
-    v5: -0.503198,
-    v6: 1.800499,
-    v7: 0.791461,
-    v8: 0.247676,
-    v9: -1.514654,
-    v10: 0.207643,
-    v11: 0.247998,
-    v12: 0.771679,
-    v13: 0.909412,
-    v14: -0.689281,
-    v15: -0.327642,
-    v16: -0.139097,
-    v17: -0.055353,
-    v18: -0.059752,
-    v19: 0.247998,
-    v20: 0.771679,
-    v21: 0.909412,
-    v22: -0.689281,
-    v23: -0.327642,
-    v24: -0.139097,
-    v25: -0.055353,
-    v26: -0.059752,
-    v27: -0.055353,
-    v28: -0.059752,
+  "& .MuiInputLabel-root": {
+    "&.Mui-focused": {
+      color: theme.palette.primary.main,
+    },
   },
-  fraudulent2: {
-    amount: 2125.87,
-    time: 1,
-    v1: -1.158233,
-    v2: 0.877737,
-    v3: 1.548718,
-    v4: 0.403034,
-    v5: -0.407193,
-    v6: 2.301871,
-    v7: 2.500893,
-    v8: -1.509871,
-    v9: 0.16537,
-    v10: 2.032923,
-    v11: -6.560371,
-    v12: 0.022937,
-    v13: -2.234826,
-    v14: 3.00416,
-    v15: -4.254772,
-    v16: 0.205977,
-    v17: -0.147004,
-    v18: -0.751367,
-    v19: 0.16537,
-    v20: 2.032923,
-    v21: -6.560371,
-    v22: 0.022937,
-    v23: -2.234826,
-    v24: 3.00416,
-    v25: -4.254772,
-    v26: 0.205977,
-    v27: -0.147004,
-    v28: -0.751367,
+}));
+
+const StyledSelect = styled(Select)(({ theme }) => ({
+  borderRadius: theme.shape.borderRadius * 1.5,
+  transition: "all 0.3s ease",
+  "&:hover .MuiOutlinedInput-notchedOutline": {
+    borderColor: theme.palette.primary.main,
   },
-};
+  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+    borderWidth: "2px",
+  },
+}));
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  borderRadius: theme.shape.borderRadius * 2,
+  padding: theme.spacing(1.5, 4),
+  fontSize: "1.1rem",
+  fontWeight: 600,
+  textTransform: "none",
+  boxShadow: "0 4px 14px rgba(33, 150, 243, 0.3)",
+  transition: "all 0.3s ease",
+  "&:hover": {
+    transform: "translateY(-2px)",
+    boxShadow: "0 6px 20px rgba(33, 150, 243, 0.4)",
+  },
+}));
+
+const FormSection = styled(Card)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius * 1.5,
+  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+  transition: "all 0.3s ease",
+  "&:hover": {
+    boxShadow: "0 6px 16px rgba(0, 0, 0, 0.1)",
+  },
+}));
+
+const SectionHeader = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  marginBottom: theme.spacing(2),
+  "& svg": {
+    marginRight: theme.spacing(1),
+    color: theme.palette.primary.main,
+  },
+}));
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit }) => {
+  const theme = useTheme();
   const [formData, setFormData] = useState<FormData>({
     amount: "",
-    time: "",
-    v1: "",
-    v2: "",
-    v3: "",
-    v4: "",
-    v5: "",
-    v6: "",
-    v7: "",
-    v8: "",
-    v9: "",
-    v10: "",
-    v11: "",
-    v12: "",
-    v13: "",
-    v14: "",
-    v15: "",
-    v16: "",
-    v17: "",
-    v18: "",
-    v19: "",
-    v20: "",
-    v21: "",
-    v22: "",
-    v23: "",
-    v24: "",
-    v25: "",
-    v26: "",
-    v27: "",
-    v28: "",
+    transaction_type: "in-store",
+    merchant_category: "retail",
+    card_type: "credit",
+    transaction_location: "domestic",
+    customer_age: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate amount
+    if (!formData.amount) {
+      newErrors.amount = "Amount is required";
+    } else if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
+      newErrors.amount = "Amount must be a positive number";
+    }
+
+    // Validate customer age
+    if (!formData.customer_age) {
+      newErrors.customer_age = "Age is required";
+    } else {
+      const age = Number(formData.customer_age);
+      if (isNaN(age)) {
+        newErrors.customer_age = "Age must be a number";
+      } else if (age < 18) {
+        newErrors.customer_age = "Age must be at least 18";
+      } else if (age > 120) {
+        newErrors.customer_age = "Age must be less than 120";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name as string]: value,
     }));
+
+    // Clear error when user starts typing
+    if (errors[name as string]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name as string];
+        return newErrors;
+      });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
-  };
-
-  const loadTestCase = (testCase: keyof typeof testCases) => {
-    // Convert numbers to strings for form data
-    const stringifiedData = Object.entries(testCases[testCase]).reduce(
-      (acc, [key, value]) => ({
-        ...acc,
-        [key]: value.toString(),
-      }),
-      {} as FormData
-    );
-
-    setFormData(stringifiedData as FormData);
+    if (validateForm()) {
+      onSubmit(formData);
+    }
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 3, maxWidth: 800, mx: "auto", mt: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        Credit Card Transaction Details
+    <StyledPaper elevation={3}>
+      <Typography
+        variant="h4"
+        gutterBottom
+        align="center"
+        color="primary"
+        sx={{
+          mb: 4,
+          fontWeight: 700,
+          background: "linear-gradient(45deg, #1976d2, #2196f3)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}
+      >
+        Credit Card Transaction Analysis
       </Typography>
 
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Test Cases:
-        </Typography>
-        <ButtonGroup variant="contained" sx={{ mt: 2, mb: 2 }}>
-          <Button onClick={() => loadTestCase("legitimate1")}>
-            Legitimate 1
-          </Button>
-          <Button onClick={() => loadTestCase("legitimate2")}>
-            Legitimate 2
-          </Button>
-          <Button onClick={() => loadTestCase("fraudulent1")}>
-            Fraudulent 1
-          </Button>
-          <Button onClick={() => loadTestCase("fraudulent2")}>
-            Fraudulent 2
-          </Button>
-        </ButtonGroup>
-      </Box>
+      <Stepper activeStep={0} alternativeLabel sx={{ mb: 4 }}>
+        <Step>
+          <StepLabel>Transaction Details</StepLabel>
+        </Step>
+        <Step>
+          <StepLabel>Analysis</StepLabel>
+        </Step>
+        <Step>
+          <StepLabel>Results</StepLabel>
+        </Step>
+      </Stepper>
 
-      <Box component="form" onSubmit={handleSubmit}>
-        <MuiGrid container spacing={2}>
-          <MuiGrid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Amount"
-              name="amount"
-              type="number"
-              value={formData.amount}
-              onChange={handleChange}
-              required
-            />
-          </MuiGrid>
-          <MuiGrid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Time"
-              name="time"
-              type="number"
-              value={formData.time}
-              onChange={handleChange}
-              required
-            />
-          </MuiGrid>
-          {Array.from({ length: 28 }, (_, i) => (
-            <MuiGrid item xs={12} sm={6} md={4} key={`v${i + 1}`}>
-              <TextField
-                fullWidth
-                label={`V${i + 1}`}
-                name={`v${i + 1}`}
-                type="number"
-                value={formData[`v${i + 1}` as keyof FormData]}
-                onChange={handleChange}
-                required
-              />
-            </MuiGrid>
-          ))}
-          <MuiGrid item xs={12}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              size="large"
-            >
-              Check for Fraud
-            </Button>
-          </MuiGrid>
-        </MuiGrid>
-      </Box>
-    </Paper>
+      <form onSubmit={handleSubmit}>
+        <FormSection>
+          <CardContent>
+            <SectionHeader>
+              <PersonIcon fontSize="large" />
+              <Typography variant="h6" color="primary" fontWeight="600">
+                Customer Information
+              </Typography>
+            </SectionHeader>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    width: "13rem",
+                    maxWidth: "1200px",
+                    margin: "0 auto",
+                    mb: 3,
+                  }}
+                >
+                  <FormControl
+                    fullWidth
+                    sx={{
+                      width: "100%",
+                      "& .MuiOutlinedInput-root": {
+                        width: "100%",
+                        minHeight: "56px",
+                      },
+                    }}
+                    error={!!errors.customer_age}
+                  >
+                    <InputLabel>Customer Age</InputLabel>
+                    <OutlinedInput
+                      label="Customer Age"
+                      name="customer_age"
+                      type="number"
+                      value={formData.customer_age}
+                      onChange={handleChange}
+                      inputProps={{ min: "18", max: "120" }}
+                      sx={{
+                        width: "100%",
+                        "& .MuiOutlinedInput-input": {
+                          fontSize: "1.1rem",
+                          padding: "16px 14px",
+                        },
+                      }}
+                    />
+                    {errors.customer_age && (
+                      <Typography
+                        variant="caption"
+                        color="error"
+                        sx={{ mt: 1 }}
+                      >
+                        {errors.customer_age}
+                      </Typography>
+                    )}
+                  </FormControl>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </FormSection>
+
+        <FormSection>
+          <CardContent>
+            <SectionHeader>
+              <PaymentIcon fontSize="large" />
+              <Typography variant="h6" color="primary" fontWeight="600">
+                Transaction Details
+              </Typography>
+            </SectionHeader>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <StyledTextField
+                  fullWidth
+                  label="Transaction Amount"
+                  name="amount"
+                  type="number"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  required
+                  error={!!errors.amount}
+                  helperText={errors.amount}
+                  inputProps={{ min: "0", step: "0.01" }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">$</InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Transaction Type</InputLabel>
+                  <StyledSelect
+                    name="transaction_type"
+                    value={formData.transaction_type}
+                    onChange={handleChange}
+                    label="Transaction Type"
+                  >
+                    <MenuItem value="in-store">In-Store</MenuItem>
+                    <MenuItem value="online">Online</MenuItem>
+                    <MenuItem value="atm">ATM</MenuItem>
+                    <MenuItem value="international">International</MenuItem>
+                  </StyledSelect>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </FormSection>
+
+        <FormSection>
+          <CardContent>
+            <SectionHeader>
+              <CreditCardIcon fontSize="large" />
+              <Typography variant="h6" color="primary" fontWeight="600">
+                Card Information
+              </Typography>
+            </SectionHeader>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Card Type</InputLabel>
+                  <StyledSelect
+                    name="card_type"
+                    value={formData.card_type}
+                    onChange={handleChange}
+                    label="Card Type"
+                  >
+                    <MenuItem value="credit">Credit Card</MenuItem>
+                    <MenuItem value="debit">Debit Card</MenuItem>
+                    <MenuItem value="prepaid">Prepaid Card</MenuItem>
+                  </StyledSelect>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </FormSection>
+
+        <FormSection>
+          <CardContent>
+            <SectionHeader>
+              <ShoppingCartIcon fontSize="large" />
+              <Typography variant="h6" color="primary" fontWeight="600">
+                Merchant Information
+              </Typography>
+            </SectionHeader>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Merchant Category</InputLabel>
+                  <StyledSelect
+                    name="merchant_category"
+                    value={formData.merchant_category}
+                    onChange={handleChange}
+                    label="Merchant Category"
+                  >
+                    <MenuItem value="retail">Retail</MenuItem>
+                    <MenuItem value="electronics">Electronics</MenuItem>
+                    <MenuItem value="food">Food & Dining</MenuItem>
+                    <MenuItem value="travel">Travel</MenuItem>
+                    <MenuItem value="entertainment">Entertainment</MenuItem>
+                    <MenuItem value="healthcare">Healthcare</MenuItem>
+                    <MenuItem value="education">Education</MenuItem>
+                    <MenuItem value="other">Other</MenuItem>
+                  </StyledSelect>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Transaction Location</InputLabel>
+                  <StyledSelect
+                    name="transaction_location"
+                    value={formData.transaction_location}
+                    onChange={handleChange}
+                    label="Transaction Location"
+                  >
+                    <MenuItem value="domestic">Domestic</MenuItem>
+                    <MenuItem value="international">International</MenuItem>
+                    <MenuItem value="online">Online</MenuItem>
+                  </StyledSelect>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </FormSection>
+
+        <Box sx={{ mt: 4, textAlign: "center" }}>
+          <StyledButton
+            type="submit"
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={<CheckCircleIcon />}
+            sx={{
+              background: "linear-gradient(45deg, #1976d2 30%, #2196f3 90%)",
+            }}
+          >
+            Analyze Transaction
+          </StyledButton>
+        </Box>
+      </form>
+    </StyledPaper>
   );
 };
 
